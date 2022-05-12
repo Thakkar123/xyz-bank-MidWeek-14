@@ -3,52 +3,62 @@ package com.bank.customlisteners;
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
 import com.aventstack.extentreports.Status;
-import com.aventstack.extentreports.reporter.ExtentSparkReporter;
-import com.aventstack.extentreports.reporter.configuration.Theme;
+import com.aventstack.extentreports.markuputils.ExtentColor;
+import com.aventstack.extentreports.markuputils.MarkupHelper;
+import com.bank.utility.extentreports.ExtentReportManager;
 import org.testng.ITestContext;
 import org.testng.ITestListener;
 import org.testng.ITestResult;
+import org.testng.Reporter;
 
 import static com.bank.utility.Utility.takeScreenShot;
 
-
+/**
+ * Created by Jay Vaghani
+ */
 public class CustomListeners implements ITestListener {
 
-    public ExtentSparkReporter reporter;
-    public ExtentReports reports;
+    public static ExtentReports reports;
     public static ExtentTest test;
+    public static ExtentTest node;
+
 
     @Override
     public void onTestStart(ITestResult iTestResult) {
-
-        test = reports.createTest(iTestResult.getName());
-
+        node = test.createNode(iTestResult.getName());
     }
 
     @Override
     public void onTestSuccess(ITestResult iTestResult) {
-        test.log(Status.PASS, "TEST CASE PASSED IS " + iTestResult.getName());
+        node.log(Status.PASS, MarkupHelper.createLabel("Test : '" + iTestResult.getName() + "' is Passed",
+                ExtentColor.GREEN));
     }
+
     @Override
     public void onTestFailure(ITestResult iTestResult) {
-//        // This step take screenshot and store in to test-output/html folder
-//        String screenshotName = Utility.takeScreenShot(iTestResult.getName());
-//        // This line required for ReportNG reports
-//        System.setProperty("org.uncommons.reportng.escape-output", "false");
-//        Reporter.log("Click to see screenshot");
-//        Reporter.log("<a target = \"_blank\" href="+screenshotName+">Screenshot</a>");
-//        Reporter.log("<br>");
-//        Reporter.log("<br>");
-//        Reporter.log("<a target = \"_blank\" href="+screenshotName+"><img src="+screenshotName+" height=200 width=200></img></a>");
-
-        test.log(Status.FAIL, "TEST FAILED IS " + iTestResult.getName());
-        test.log(Status.FAIL, "TEST FAILED IS " + iTestResult.getThrowable());
+        // This step will
+        // take screenshot and store in to test-output/html folder
         String screenshotPath = takeScreenShot(iTestResult.getName());
-        test.addScreenCaptureFromPath(screenshotPath);
+        // These lines are required for Extent report
+        node.log(Status.FAIL, MarkupHelper.createCodeBlock(String.valueOf(iTestResult.getThrowable())));
+        node.log(Status.FAIL, MarkupHelper.createLabel("Test : '" + iTestResult.getName() + "' is Failed",
+                ExtentColor.RED));
+        node.addScreenCaptureFromPath(screenshotPath);
+        // These lines are required for ReportNG report
+        System.setProperty("org.uncommons.reportng.escape-output", "false");
+        Reporter.log("Click to see screenshot");
+        Reporter.log("<a target = \"_blank\" href=" + screenshotPath + ">Screenshot</a>");
+        Reporter.log("<br>");
+        Reporter.log("<br>");
+        Reporter.log("<a target = \"_blank\" href=" + screenshotPath + "><img src=" + screenshotPath +
+                " height=200 width=200></img></a>");
+
     }
+
     @Override
     public void onTestSkipped(ITestResult iTestResult) {
-        test.log(Status.SKIP, "TEST SKIPPED IS " + iTestResult.getName());
+        node.log(Status.SKIP, MarkupHelper.createLabel("Test : '" + iTestResult.getName() + "' is Skipped",
+                ExtentColor.YELLOW));
     }
 
     @Override
@@ -58,19 +68,9 @@ public class CustomListeners implements ITestListener {
 
     @Override
     public void onStart(ITestContext iTestContext) {
-        reporter = new ExtentSparkReporter(System.getProperty("user.dir")+"/test-output/extent.html");
-        reporter.config().setDocumentTitle("Automation Report");
-        reporter.config().setReportName("XYZ-Bank");
-        reporter.config().setTheme(Theme.DARK);
-        reports = new ExtentReports();
-        reports.attachReporter(reporter);
-
-        reports.setSystemInfo("User Name", System.getProperty("user.name"));
-        reports.setSystemInfo("Time Zone", System.getProperty("user.timezone"));
-        reports.setSystemInfo("Machine", "Windows 10" + "64 Bit");
-        reports.setSystemInfo("Selenium", "3.141.59");
-        reports.setSystemInfo("Maven", "3.5.9");
-        reports.setSystemInfo("Java Version", "1.8.0_151");
+        reports = ExtentReportManager.getReports();
+        test = reports.createTest(iTestContext.getAllTestMethods()[0].getInstance().getClass().getSimpleName())
+                .assignAuthor("Ajit").assignCategory("sanity","smoke","regression");
     }
 
     @Override
